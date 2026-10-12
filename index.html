@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animazione Google &amp; Google Maps — Demo Webnix</title>
+  <meta name="description" content="Animazione dimostrativa: ricerca di un'attività su Google e scheda su Google Maps. Dati interamente dimostrativi.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <main class="hero" id="hero">
+    <div class="stage-wrap">
+
+      <!-- Pulsante pausa/riprendi -->
+      <button type="button" class="pause-btn" id="pauseBtn" aria-label="Metti in pausa l'animazione" aria-pressed="false">
+        <svg class="icon-pause" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/>
+          <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/>
+        </svg>
+        <svg class="icon-play" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="M8 5.5v13l11-6.5z" fill="currentColor"/>
+        </svg>
+        <span class="pause-label">Pausa</span>
+      </button>
+
+      <!-- ================= SCENA 1: BARRA DI RICERCA ================= -->
+      <section class="scene scene-search" id="sceneSearch" aria-label="Simulazione barra di ricerca">
+        <div class="fake-logo" aria-hidden="true">
+          <span class="l1">G</span><span class="l2">o</span><span class="l3">o</span><span class="l4">g</span><span class="l5">l</span><span class="l6">e</span>
+          <span class="demo-tag">demo</span>
+        </div>
+
+        <div class="searchbar" id="searchbar">
+          <svg class="sb-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" fill="none" stroke="#9aa0a6" stroke-width="2"/>
+            <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <p class="sb-text" id="typedText"><span class="caret" id="caret"></span></p>
+          <button type="button" class="sb-mic" aria-hidden="true" tabindex="-1">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="#4285F4"/>
+              <path d="M17 11a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z" fill="#EA4335"/>
+              <rect x="10.5" y="20" width="3" height="1.6" rx=".8" fill="#FBBC05"/>
+            </svg>
+          </button>
+          <span class="sb-search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="#1a73e8" stroke-width="2.2"/>
+              <line x1="15.5" y1="15.5" x2="20" y2="20" stroke="#1a73e8" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </div>
+        <p class="search-hint">Anteprima dimostrativa — dati inventati</p>
+      </section>
+
+      <!-- ================= SCENA 2: RISULTATI DI RICERCA ================= -->
+      <section class="scene scene-results" id="sceneResults" aria-label="Risultati di ricerca simulati" hidden>
+        <div class="results-topbar">
+          <div class="mini-logo" aria-hidden="true">
+            <span class="l1">G</span><span class="l2">o</span><span class="l3">o</span><span class="l4">g</span><span class="l5">l</span><span class="l6">e</span>
+          </div>
+          <div class="mini-search">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" fill="none" stroke="#9aa0a6" stroke-width="2"/>
+              <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span id="miniQuery">la mia attività</span>
+          </div>
+        </div>
+
+        <div class="results-body">
+          <div class="results-col">
+            <p class="results-count">Circa 1.240 risultati <span class="demo-chip">Anteprima dimostrativa</span></p>
+
+            <article class="result-item" data-seq="1">
+              <p class="ri-url">www.verdefiorista.example › it › centro</p>
+              <h3 class="ri-title">Verde Fiorista — Fiori e Piante a Milano</h3>
+              <div class="ri-rating">
+                <span class="stars stars-sm" aria-hidden="true"></span>
+                <span class="ri-score">4,8</span>
+                <span class="ri-revcount">(127 recensioni)</span>
+              </div>
+              <p class="ri-desc">Fiori freschi, composizioni personalizzate e consegne a domicilio in tutta Milano. Aperto 7 giorni su 7.</p>
+              <ul class="ri-meta">
+                <li>Via dei Fiori 12, 20121 Milano</li>
+                <li><span class="open-badge">Aperto ora</span> · Chiude alle 19:30</li>
+                <li>02 1234 5678</li>
+              </ul>
+            </article>
+
+            <article class="result-item" data-seq="2">
+              <div class="ri-map-preview">
+                <div class="map-svg map-mini" role="img" aria-label="Anteprima mappa stilizzata"></div>
+                <div class="mp-info">
+                  <p class="mp-name">Verde Fiorista</p>
+                  <p class="mp-cat">Negozio di fiori · Via dei Fiori 12</p>
+                  <p class="mp-rate"><span class="stars stars-sm" aria-hidden="true"></span> 4,8 · 127</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="result-item" data-seq="3">
+              <p class="ri-url">www.fioriepiante.example › verde-fiorista</p>
+              <h3 class="ri-title ri-title-alt">Verde Fiorista — Recensioni e orari</h3>
+              <p class="ri-desc">Orari di apertura, telefono, indirizzo e opinioni dei clienti del negozio di fiori in centro a Milano.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SCENA 3: SCHEDA ATTIVITÀ (GOOGLE MAPS STYLE) ================= -->
+      <section class="scene scene-card" id="sceneCard" aria-label="Scheda dell'attività" hidden>
+        <div class="biz-card">
+
+          <div class="bc-cover" aria-hidden="true">
+            <svg viewBox="0 0 600 200" preserveAspectRatio="xMidYMid slice" class="cover-svg">
+              <defs>
+                <linearGradient id="coverSky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#dff1fb"/>
+                  <stop offset="1" stop-color="#f6fbfe"/>
+                </linearGradient>
+              </defs>
+              <rect width="600" height="200" fill="url(#coverSky)"/>
+              <rect x="0" y="150" width="600" height="50" fill="#dcead9"/>
+              <!-- building -->
+              <rect x="60" y="60" width="180" height="95" rx="6" fill="#ffffff" stroke="#c9d6e2"/>
+              <rect x="80" y="80" width="40" height="35" rx="3" fill="#bcdcf5"/>
+              <rect x="135" y="80" width="40" height="35" rx="3" fill="#bcdcf5"/>
+              <rect x="190" y="80" width="40" height="35" rx="3" fill="#bcdcf5"/>
+              <rect x="120" y="120" width="60" height="35" rx="3" fill="#8fb8d8"/>
+              <rect x="55" y="52" width="190" height="14" rx="7" fill="#7cb342"/>
+              <text x="150" y="63" font-size="10" fill="#ffffff" text-anchor="middle" font-family="Arial">NEGOZIO</text>
+              <!-- awning -->
+              <path d="M50 155 h200 l-12 18 h-176 z" fill="#f2a3b6"/>
+              <!-- trees -->
+              <circle cx="320" cy="120" r="26" fill="#8bc34a"/><rect x="316" y="140" width="8" height="22" fill="#8d6e63"/>
+              <circle cx="380" cy="105" r="32" fill="#7cb342"/><rect x="375" y="132" width="10" height="30" fill="#8d6e63"/>
+              <!-- flower pots -->
+              <g>
+                <rect x="440" y="140" width="26" height="20" rx="3" fill="#c0785c"/>
+                <circle cx="447" cy="135" r="7" fill="#ef5350"/><circle cx="459" cy="136" r="6" fill="#ffb300"/><circle cx="453" cy="128" r="6" fill="#ab47bc"/>
+              </g>
+              <g>
+                <rect x="490" y="140" width="26" height="20" rx="3" fill="#c0785c"/>
+                <circle cx="497" cy="135" r="7" fill="#ec407a"/><circle cx="509" cy="136" r="6" fill="#42a5f5"/><circle cx="503" cy="128" r="6" fill="#ffee58"/>
+              </g>
+              <!-- sun -->
+              <circle cx="540" cy="45" r="20" fill="#ffe082"/>
+            </svg>
+            <span class="cover-demo">Immagine dimostrativa</span>
+          </div>
+
+          <div class="bc-content">
+            <header class="bc-header">
+              <div>
+                <h2 class="bc-name" id="bcName">Verde Fiorista</h2>
+                <div class="bc-rating-row">
+                  <span class="score-num" id="scoreNum">0,0</span>
+                  <span class="stars stars-md" id="cardStars" aria-hidden="true"></span>
+                  <span class="bc-revcount"><span id="revCounter">0</span> recensioni</span>
+                </div>
+                <p class="bc-sub"><span class="bc-category">Negozio di fiori</span> · <span class="open-status open-now" id="openStatus">Aperto ora</span> · <span id="bcHoursInline">Chiude alle 19:30</span></p>
+              </div>
+            </header>
+
+            <div class="bc-actions">
+              <button type="button" class="action-btn primary">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 2 4 22l8-4 8 4z" transform="rotate(90 12 12)" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                Indicazioni
+              </button>
+              <button type="button" class="action-btn">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.2 .4 0 .8-.2 1z" fill="currentColor"/></svg>
+                Chiama
+              </button>
+              <button type="button" class="action-btn">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.7 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.7-3.8-9S9.5 5.6 12 3z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                Sito web
+              </button>
+            </div>
+
+            <dl class="bc-info">
+              <div class="info-row">
+                <dt><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z" fill="none" stroke="#5f6368" stroke-width="2"/><circle cx="12" cy="10" r="2.5" fill="#5f6368"/></svg></dt>
+                <dd><strong>Indirizzo:</strong> Via dei Fiori 12, 20121 Milano MI</dd>
+              </div>
+              <div class="info-row">
+                <dt><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#5f6368" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="#5f6368" stroke-width="2" stroke-linecap="round"/></svg></dt>
+                <dd><strong>Orari:</strong> Lun–Dom 8:30–19:30 <span class="open-badge">Aperto ora</span></dd>
+              </div>
+              <div class="info-row">
+                <dt><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.2.4 2.4.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.2.4 0 .8-.2 1z" fill="#5f6368"/></svg></dt>
+                <dd><strong>Telefono:</strong> 02 1234 5678</dd>
+              </div>
+            </dl>
+
+            <!-- Mappa stilizzata -->
+            <div class="bc-map map-svg" role="img" aria-label="Mappa stilizzata con segnaposto dell'attività">
+              <div class="pin" id="mapPin" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="34" height="34">
+                  <path d="M12 22s-7.5-6.2-7.5-12A7.5 7.5 0 1 1 19.5 10c0 5.8-7.5 12-7.5 12z" fill="#ea4335"/>
+                  <circle cx="12" cy="10" r="3" fill="#fff"/>
+                </svg>
+              </div>
+              <span class="map-demo">Mappa dimostrativa</span>
+            </div>
+
+            <!-- Recensioni -->
+            <h3 class="reviews-title">Recensioni <span class="demo-chip">dati dimostrativi</span></h3>
+            <div class="reviews-list" id="reviewsList">
+              <article class="review" data-seq="1">
+                <header class="rv-head">
+                  <span class="avatar av-a">G</span>
+                  <div>
+                    <p class="rv-name">Giulia R.</p>
+                    <p class="rv-meta"><span class="stars stars-sm" data-full="5" aria-hidden="true"></span> <span class="rv-time">2 settimane fa</span></p>
+                  </div>
+                </header>
+                <p class="rv-text">Composizione meravigliosa realizzata per il mio compleanno: freschissima e consegnata in orario. Personale gentilissimo!</p>
+              </article>
+              <article class="review" data-seq="2">
+                <header class="rv-head">
+                  <span class="avatar av-b">M</span>
+                  <div>
+                    <p class="rv-name">Marco T.</p>
+                    <p class="rv-meta"><span class="stars stars-sm" data-full="5" aria-hidden="true"></span> <span class="rv-time">1 mese fa</span></p>
+                  </div>
+                </header>
+                <p class="rv-text">Il miglior fiorista della zona. Prezzi onesti e consigli sempre azzeccati. Ormai non vado più da nessun'altra parte.</p>
+              </article>
+              <article class="review" data-seq="3">
+                <header class="rv-head">
+                  <span class="avatar av-c">S</span>
+                  <div>
+                    <p class="rv-name">Sara L.</p>
+                    <p class="rv-meta"><span class="stars stars-sm" data-full="4" aria-hidden="true"></span> <span class="rv-time">3 mesi fa</span></p>
+                  </div>
+                </header>
+                <p class="rv-text">Ottima scelta di piante ornamentali. Unico neo: nel weekend c'è un po' di coda, ma ne vale la pena.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MESSAGGIO FINALE PROMOZIONALE ================= -->
+      <section class="cta-final" id="ctaFinal" hidden>
+        <h2 class="cta-title">La tua attività è facile da trovare su Google?</h2>
+        <p class="cta-sub">Fatti trovare dai clienti che stanno cercando proprio i tuoi servizi.</p>
+        <!-- Collegare il pulsante alla pagina dei servizi Webnix quando disponibile -->
+        <a class="cta-btn" id="ctaBtn" href="#" data-webnix-link="services">Scopri come migliorare la tua presenza online</a>
+        <p class="cta-note">Animazione dimostrativa — tutti i dati mostrati sono inventati.</p>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

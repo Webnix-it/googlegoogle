@@ -1,0 +1,694 @@
+/* ============================================================
+   ANIMAZIONE GOOGLE / GOOGLE MAPS — Demo Webnix
+   Solo HTML + CSS + JS vanilla. Nessun asset esterno obbligatorio.
+   ============================================================ */
+
+:root {
+  --blue: #1a73e8;
+  --red: #ea4335;
+  --yellow: #fbbc04;
+  --green: #34a853;
+  --ink: #202124;
+  --gray: #5f6368;
+  --gray-light: #9aa0a6;
+  --border: #dadce0;
+  --bg-soft: #f8f9fa;
+  --star: #fbbc04;
+  --shadow-sm: 0 1px 6px rgba(32, 33, 36, 0.14);
+  --shadow-md: 0 4px 18px rgba(32, 33, 36, 0.16);
+  --radius-lg: 16px;
+  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+body { min-height: 100vh; }
+
+/* ---------- Hero / contenitore ---------- */
+.hero {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: clamp(16px, 4vw, 48px) clamp(12px, 3vw, 24px);
+  background: #ffffff;
+}
+
+.stage-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  min-height: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ---------- Pulsante pausa ---------- */
+.pause-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--gray);
+  font: 600 13px/1 var(--font);
+  padding: 9px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s ease, color .2s ease, border-color .2s ease;
+}
+.pause-btn:hover { color: var(--blue); border-color: var(--blue); box-shadow: var(--shadow-md); }
+.pause-btn .icon-play { display: none; }
+.pause-btn.is-paused .icon-play { display: block; }
+.pause-btn.is-paused .icon-pause { display: none; }
+
+/* ---------- Scene ----------
+   Le scene inactive restano nel layout (per mantenere l'altezza dello
+   stage ed evitare salti) ma sono invisibili e non interattive.
+   La visibilità è controllata dalla classe .is-active gestita da JS. */
+.scene {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .35s ease, visibility 0s linear .35s;
+}
+.scene.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .35s ease, visibility 0s;
+}
+/* Fallback senza JavaScript: l'attributo hidden nasconde del tutto */
+.scene[hidden] { display: none; }
+
+/* ============================================================
+   SCENA 1 — BARRA DI RICERCA
+   ============================================================ */
+.scene-search {
+  padding-top: clamp(60px, 14vh, 140px);
+  transition: transform .6s cubic-bezier(.22,.9,.3,1);
+}
+.scene-search.lifted { transform: translateY(-26px); }
+
+.fake-logo {
+  position: relative;
+  font-size: clamp(48px, 8vw, 72px);
+  font-weight: 700;
+  letter-spacing: -2px;
+  margin-bottom: 34px;
+  user-select: none;
+}
+.scene-search.is-active .fake-logo {
+  animation: fadeDown .7s ease both;
+}
+.fake-logo .l1 { color: #4285f4; }
+.fake-logo .l2 { color: #ea4335; }
+.fake-logo .l3 { color: #fbbc04; }
+.fake-logo .l4 { color: #4285f4; }
+.fake-logo .l5 { color: #34a853; }
+.fake-logo .l6 { color: #fbbc04; }
+.demo-tag {
+  position: absolute;
+  top: 6px;
+  right: -46px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gray-light);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(560px, 92%);
+  height: 52px;
+  padding: 0 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: scale(.92);
+  transition: box-shadow .25s ease, transform .18s ease;
+}
+/* Comparsa della barra: gestita da JS con la classe .enter (riavviabile
+   a ogni ciclo tramite reflow), con leggero effetto di ingrandimento. */
+.searchbar.enter { animation: barPop .65s cubic-bezier(.2,1.2,.35,1) both; }
+.searchbar.submitting { animation: submitPulse .5s ease; }
+
+.sb-icon { flex: 0 0 auto; }
+
+.sb-text {
+  flex: 1;
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+}
+
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 20px;
+  margin-left: 1px;
+  background: var(--blue);
+  border-radius: 1px;
+  animation: blink 1s steps(1) infinite;
+}
+.caret.stopped { animation: none; opacity: 0; transition: opacity .3s ease; }
+
+.sb-mic {
+  border: 0;
+  background: none;
+  padding: 2px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+}
+.sb-search-icon {
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+  opacity: 0;
+  transition: opacity .4s ease;
+}
+.sb-search-icon.visible { opacity: 1; }
+
+.search-hint {
+  margin-top: 22px;
+  font-size: 12.5px;
+  color: var(--gray-light);
+}
+.scene-search.is-active .search-hint {
+  animation: fadeIn .8s ease 1s both;
+}
+
+/* ============================================================
+   SCENA 2 — RISULTATI DI RICERCA
+   ============================================================ */
+.results-topbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 4px 14px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.mini-logo {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  user-select: none;
+}
+.mini-logo .l1 { color: #4285f4; }
+.mini-logo .l2 { color: #ea4335; }
+.mini-logo .l3 { color: #fbbc04; }
+.mini-logo .l4 { color: #4285f4; }
+.mini-logo .l5 { color: #34a853; }
+.mini-logo .l6 { color: #fbbc04; }
+
+.mini-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 16px;
+  min-width: min(420px, 70%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+  font-size: 15px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.results-body { width: 100%; display: flex; justify-content: center; }
+.results-col { width: min(640px, 100%); padding: 0 4px; }
+
+.results-count {
+  font-size: 13px;
+  color: var(--gray);
+  margin: 4px 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demo-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: var(--gray);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.result-item {
+  margin: 0 0 26px;
+  opacity: 0;
+  transform: translateY(18px);
+}
+.result-item.show {
+  animation: riseIn .55s cubic-bezier(.22,.9,.3,1) forwards;
+}
+
+.ri-url { margin: 0 0 3px; font-size: 13px; color: var(--gray); }
+.ri-title {
+  margin: 0 0 6px;
+  font-size: clamp(17px, 2.4vw, 20px);
+  font-weight: 500;
+  color: #1a0dab;
+  line-height: 1.3;
+}
+.ri-title-alt { color: #188038; font-size: 16px; }
+.ri-desc { margin: 6px 0 8px; font-size: 14px; color: #4d5156; line-height: 1.55; }
+
+.ri-rating { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--gray); }
+.ri-score { color: var(--ink); font-weight: 600; }
+
+.ri-meta { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13.5px; color: #4d5156; }
+.ri-meta li { margin: 3px 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.open-badge {
+  color: var(--green);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Anteprima mappa nei risultati */
+.ri-map-preview {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.map-mini {
+  flex: 0 0 46%;
+  min-height: 130px;
+}
+.mp-info { padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.mp-name { margin: 0; font-size: 16px; font-weight: 600; color: var(--ink); }
+.mp-cat { margin: 0; font-size: 13px; color: var(--gray); }
+.mp-rate { margin: 0; font-size: 13px; color: var(--gray); display: flex; align-items: center; gap: 6px; }
+
+/* ============================================================
+   Mappa stilizzata (SVG in CSS, nessuna immagine esterna)
+   ============================================================ */
+.map-svg {
+  position: relative;
+  background-color: #e8ede6;
+  background-image:
+    /* parco */
+    radial-gradient(circle at 78% 24%, #cfe8c4 0 46px, transparent 47px),
+    radial-gradient(circle at 14% 78%, #cfe8c4 0 34px, transparent 35px),
+    /* acqua */
+    radial-gradient(ellipse 120px 60px at 92% 88%, #bcdcf5 0 99%, transparent 100%),
+    /* strade principali */
+    linear-gradient(90deg, transparent 0 22%, #ffffff 22% 24.5%, transparent 24.5%),
+    linear-gradient(0deg, transparent 0 58%, #ffffff 58% 60.5%, transparent 60.5%),
+    linear-gradient(115deg, transparent 0 40%, #fdfdfd 40% 41.8%, transparent 41.8%),
+    /* strade secondarie */
+    linear-gradient(90deg, transparent 0 63%, #f4f6f3 63% 64.5%, transparent 64.5%),
+    linear-gradient(0deg, transparent 0 24%, #f4f6f3 24% 25.5%, transparent 25.5%),
+    linear-gradient(0deg, transparent 0 86%, #f4f6f3 86% 87.4%, transparent 87.4%),
+    /* isolati */
+    linear-gradient(#dfe6dc, #dfe6dc);
+  background-blend-mode: normal;
+}
+.map-svg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(120,140,120,.06) 0 2px, transparent 2px 46px),
+    repeating-linear-gradient(0deg, rgba(120,140,120,.06) 0 2px, transparent 2px 46px);
+  pointer-events: none;
+}
+
+/* ============================================================
+   SCENA 3 — SCHEDA ATTIVITÀ
+   ============================================================ */
+
+.biz-card {
+  width: min(760px, 100%);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(26px) scale(.97);
+}
+.biz-card.show {
+  animation: cardIn .7s cubic-bezier(.2,1.1,.35,1) forwards;
+}
+
+.bc-cover { position: relative; height: clamp(140px, 24vw, 200px); background: #dff1fb; }
+.cover-svg { width: 100%; height: 100%; display: block; }
+.cover-demo {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  color: var(--gray);
+  background: rgba(255,255,255,.85);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+.bc-content { padding: clamp(16px, 3.5vw, 28px); }
+
+.bc-header { margin-bottom: 16px; }
+.bc-name { margin: 0 0 6px; font-size: clamp(21px, 3.4vw, 27px); font-weight: 600; color: var(--ink); }
+
+.bc-rating-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.score-num { font-size: 17px; font-weight: 700; color: var(--ink); min-width: 34px; }
+.bc-revcount { font-size: 14px; color: var(--gray); }
+#revCounter { font-weight: 600; color: var(--blue); }
+
+.bc-sub { margin: 8px 0 0; font-size: 14px; color: var(--gray); }
+.bc-category { color: var(--blue); }
+.open-status.open-now { color: var(--green); font-weight: 700; }
+
+/* Azioni */
+.bc-actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0; }
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font: 600 13.5px/1 var(--font);
+  color: var(--blue);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .2s ease, box-shadow .2s ease, transform .15s ease;
+}
+.action-btn:hover { background: #f1f6fe; box-shadow: var(--shadow-sm); }
+.action-btn:active { transform: scale(.97); }
+.action-btn.primary { color: #fff; background: var(--blue); border-color: var(--blue); }
+.action-btn.primary:hover { background: #1765cc; }
+
+/* Info */
+.bc-info { margin: 0 0 20px; padding: 0; }
+.info-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 9px 4px;
+  border-bottom: 1px solid #f1f3f4;
+  font-size: 14px;
+  color: #3c4043;
+}
+.info-row:last-child { border-bottom: 0; }
+.info-row dt { flex: 0 0 auto; display: flex; align-items: center; padding-top: 2px; }
+.info-row dd { margin: 0; }
+.info-row strong { color: var(--ink); font-weight: 600; }
+
+/* Mappa nella scheda */
+.bc-map {
+  height: clamp(150px, 22vw, 190px);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.map-demo {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--gray);
+  background: rgba(255,255,255,.85);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.pin {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -100%);
+  opacity: 0;
+}
+.pin.drop {
+  animation: pinDrop .8s cubic-bezier(.3,1.4,.5,1) forwards;
+}
+.pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 18px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.18);
+  transform: translateX(-50%) scale(0);
+}
+.pin.drop::after { animation: pinShadow .8s ease forwards; }
+
+/* Recensioni */
+.reviews-title { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 10px; }
+
+.reviews-list { display: flex; flex-direction: column; gap: 14px; }
+.review {
+  border: 1px solid #f1f3f4;
+  background: var(--bg-soft);
+  border-radius: 12px;
+  padding: 14px 16px;
+  opacity: 0;
+  transform: translateY(16px);
+}
+.review.show { animation: reviewIn .6s cubic-bezier(.22,.9,.3,1) forwards; }
+.review.drift { animation: reviewDrift 9s ease-in-out 1s infinite alternate; }
+
+.rv-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.avatar {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+.av-a { background: #7b1fa2; }
+.av-b { background: #0b8043; }
+.av-c { background: #d93025; }
+.rv-name { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); }
+.rv-meta { margin: 2px 0 0; font-size: 12px; color: var(--gray-light); display: flex; align-items: center; gap: 7px; }
+.rv-time { font-size: 12px; }
+.rv-text { margin: 0; font-size: 13.5px; line-height: 1.6; color: #3c4043; }
+
+/* STELLE — struttura a due livelli:
+   - sfondo grigio (background-image applicato via JS, SVG data-uri)
+   - .layer-full dorato clippato con clip-path per il riempimento parziale.
+   Nessun file immagine esterno. */
+.stars {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  line-height: 1;
+  vertical-align: middle;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+.stars-sm { width: 74px; height: 14px; }
+.stars-md { width: 92px; height: 17px; }
+
+.stars .layer-full {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  clip-path: inset(0 100% 0 0);
+}
+
+/* ============================================================
+   CTA FINALE
+   ============================================================ */
+.cta-final {
+  width: 100%;
+  text-align: center;
+  padding: clamp(24px, 5vw, 44px) 16px 8px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(20px);
+}
+.cta-final.is-active {
+  visibility: visible;
+  pointer-events: auto;
+}
+.cta-final.show {
+  animation: riseIn .7s cubic-bezier(.22,.9,.3,1) forwards;
+}
+/* Fallback senza JavaScript: l'attributo hidden nasconde del tutto */
+.cta-final[hidden] { display: none; }
+
+.cta-title {
+  margin: 0 0 10px;
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  color: var(--ink);
+}
+.cta-sub { margin: 0 auto 22px; font-size: clamp(15px, 2.2vw, 17px); color: var(--gray); max-width: 560px; }
+
+.cta-btn {
+  display: inline-block;
+  padding: 14px 30px;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(135deg, #1a73e8, #4285f4 55%, #34a853 130%);
+  border-radius: 999px;
+  box-shadow: 0 6px 20px rgba(26,115,232,.32);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(26,115,232,.4); }
+.cta-btn:active { transform: translateY(0) scale(.98); }
+
+.cta-note { margin-top: 18px; font-size: 12px; color: var(--gray-light); }
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes barPop {
+  0%   { opacity: 0; transform: scale(.92) translateY(8px); }
+  60%  { opacity: 1; transform: scale(1.03) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes blink { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+@keyframes submitPulse {
+  0%   { transform: scale(1); box-shadow: var(--shadow-sm); }
+  35%  { transform: scale(.985); box-shadow: 0 0 0 6px rgba(26,115,232,.12), var(--shadow-md); }
+  100% { transform: scale(1); box-shadow: var(--shadow-sm); }
+}
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(26px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes reviewIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes reviewDrift {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-7px); }
+}
+@keyframes pinDrop {
+  0%   { opacity: 0; transform: translate(-50%, -320%) scale(.7); }
+  55%  { opacity: 1; transform: translate(-50%, -92%) scale(1.05); }
+  72%  { transform: translate(-50%, -104%) scale(.98); }
+  86%  { transform: translate(-50%, -97%) scale(1.01); }
+  100% { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+}
+@keyframes pinShadow {
+  0%   { transform: translateX(-50%) scale(0); opacity: 0; }
+  55%  { transform: translateX(-50%) scale(1.15); opacity: .8; }
+  100% { transform: translateX(-50%) scale(1); opacity: .55; }
+}
+
+/* Pausa globale: congela le animazioni CSS */
+.is-paused * ,
+.is-paused .caret {
+  animation-play-state: paused !important;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 760px) {
+  .stage-wrap { min-height: 560px; }
+  .demo-tag { right: -8px; top: -18px; }
+  .results-topbar { flex-wrap: wrap; gap: 12px; }
+  .mini-search { min-width: 100%; }
+  .ri-map-preview { flex-direction: column; }
+  .map-mini { flex: 0 0 auto; width: 100%; min-height: 120px; }
+  .bc-actions { gap: 8px; }
+  .action-btn { padding: 8px 14px; font-size: 13px; }
+}
+
+@media (max-width: 480px) {
+  .searchbar { height: 48px; gap: 8px; padding: 0 12px; }
+  .sb-text { font-size: 15px; }
+  .sb-mic { display: none; }
+  .pause-btn { padding: 7px 11px; }
+  .pause-label { display: none; }
+  .info-row { font-size: 13px; }
+  .review { padding: 12px; }
+}
+
+/* ============================================================
+   PREFERS-REDUCED-MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .caret { display: none; }
+  /* Con animazioni ridotte tutto ciò che entra in scena deve restare
+     visibile: forza lo stato finale degli elementi animati. */
+  .biz-card, .result-item, .review, .cta-final, .searchbar, .pin {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+  .fake-logo, .search-hint { opacity: 1 !important; }
+  .pin { transform: translate(-50%, -100%) !important; }
+}
