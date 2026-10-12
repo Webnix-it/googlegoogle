@@ -77,13 +77,27 @@ body { min-height: 100vh; }
 .pause-btn.is-paused .icon-play { display: block; }
 .pause-btn.is-paused .icon-pause { display: none; }
 
-/* ---------- Scene ---------- */
+/* ---------- Scene ----------
+   Le scene inactive restano nel layout (per mantenere l'altezza dello
+   stage ed evitare salti) ma sono invisibili e non interattive.
+   La visibilità è controllata dalla classe .is-active gestita da JS. */
 .scene {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .35s ease, visibility 0s linear .35s;
 }
+.scene.is-active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .35s ease, visibility 0s;
+}
+/* Fallback senza JavaScript: l'attributo hidden nasconde del tutto */
 .scene[hidden] { display: none; }
 
 /* ============================================================
@@ -102,8 +116,9 @@ body { min-height: 100vh; }
   letter-spacing: -2px;
   margin-bottom: 34px;
   user-select: none;
-  opacity: 0;
-  animation: fadeDown .7s ease forwards;
+}
+.scene-search.is-active .fake-logo {
+  animation: fadeDown .7s ease both;
 }
 .fake-logo .l1 { color: #4285f4; }
 .fake-logo .l2 { color: #ea4335; }
@@ -138,9 +153,11 @@ body { min-height: 100vh; }
   box-shadow: var(--shadow-sm);
   opacity: 0;
   transform: scale(.92);
-  animation: barPop .65s cubic-bezier(.2,1.2,.35,1) .25s forwards;
   transition: box-shadow .25s ease, transform .18s ease;
 }
+/* Comparsa della barra: gestita da JS con la classe .enter (riavviabile
+   a ogni ciclo tramite reflow), con leggero effetto di ingrandimento. */
+.searchbar.enter { animation: barPop .65s cubic-bezier(.2,1.2,.35,1) both; }
 .searchbar.submitting { animation: submitPulse .5s ease; }
 
 .sb-icon { flex: 0 0 auto; }
@@ -190,16 +207,14 @@ body { min-height: 100vh; }
   margin-top: 22px;
   font-size: 12.5px;
   color: var(--gray-light);
-  opacity: 0;
-  animation: fadeIn .8s ease 1s forwards;
+}
+.scene-search.is-active .search-hint {
+  animation: fadeIn .8s ease 1s both;
 }
 
 /* ============================================================
    SCENA 2 — RISULTATI DI RICERCA
    ============================================================ */
-.scene-results {
-  animation: fadeIn .5s ease;
-}
 .results-topbar {
   width: 100%;
   display: flex;
@@ -351,9 +366,6 @@ body { min-height: 100vh; }
 /* ============================================================
    SCENA 3 — SCHEDA ATTIVITÀ
    ============================================================ */
-.scene-card {
-  animation: fadeIn .45s ease;
-}
 
 .biz-card {
   width: min(760px, 100%);
@@ -546,11 +558,18 @@ body { min-height: 100vh; }
   text-align: center;
   padding: clamp(24px, 5vw, 44px) 16px 8px;
   opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
   transform: translateY(20px);
+}
+.cta-final.is-active {
+  visibility: visible;
+  pointer-events: auto;
 }
 .cta-final.show {
   animation: riseIn .7s cubic-bezier(.22,.9,.3,1) forwards;
 }
+/* Fallback senza JavaScript: l'attributo hidden nasconde del tutto */
 .cta-final[hidden] { display: none; }
 
 .cta-title {
@@ -663,9 +682,13 @@ body { min-height: 100vh; }
     transition-duration: 0.01ms !important;
   }
   .caret { display: none; }
-  .biz-card, .result-item, .review, .cta-final, .fake-logo, .searchbar {
+  /* Con animazioni ridotte tutto ciò che entra in scena deve restare
+     visibile: forza lo stato finale degli elementi animati. */
+  .biz-card, .result-item, .review, .cta-final, .searchbar, .pin {
     opacity: 1 !important;
     transform: none !important;
+    visibility: visible !important;
   }
-  .pin { opacity: 1; transform: translate(-50%, -100%); }
+  .fake-logo, .search-hint { opacity: 1 !important; }
+  .pin { transform: translate(-50%, -100%) !important; }
 }

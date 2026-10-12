@@ -57,6 +57,12 @@ function applyBusinessData(data) {
 }
 
 /* ------------------------------------------------------------
+   Riferimenti DOM globali (il <script> è in fondo al body, quindi
+   gli elementi esistono già al momento della valutazione).
+------------------------------------------------------------- */
+const stageWrap = document.querySelector(".stage-wrap");
+
+/* ------------------------------------------------------------
    Timer gestiti: ogni setTimeout della sequenza passa da
    managedTimeout(), così è possibile annullarli tutti con clearAll()
    per evitare animazioni duplicate o sovrapposte.
@@ -81,11 +87,9 @@ const TimerPool = {
   }
 };
 
-/* Pausa/ripresa basata su Web Animations API + animation-play-state
-   Permette anche di sospendere il "tempo" della sequenza. */
+/* Pausa/ripresa: congela CSS animations (via classe .is-paused) e il
+   "tempo" della sequenza (wait/animateValue controllano la flag paused). */
 let paused = false;
-let pauseStartTime = 0;
-let totalPausedMs = 0;
 let sequenceAbortToken = { cancelled: false };
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -127,38 +131,49 @@ function phaseWait(token, ms) {
   });
 }
 
-/* Animazione con requestAnimationFrame, pausabile e cancellabile */
+/* Riferimento agli rAF attivi, annullabili al riavvio del ciclo */
+let activeRafs = new Set();
+
+function cancelAllRafs() {
+  activeRafs.forEach((id) => cancelAnimationFrame(id));
+  activeRafs.clear();
+}
+
+/* Animazione con requestAnimationFrame, pausabile e cancellabile.
+   Il tempo trascorso in pausa viene scalcolato, così l'animazione
+   riprende esattamente da dove si era fermata. */
 function animateValue({ duration, onUpdate, onDone }) {
   return new Promise((resolve) => {
     const token = sequenceAbortToken;
-    let rafId = null;
-    let startTime = null;   // riferimento temporale (già compensato per le pause)
-    let pausedAt = 0;       // timestamp di inizio pausa corrente
+    let elapsed = 0;        // avanzamento reale dell'animazione (ms)
+    let lastNow = null;     // timestamp del frame precedente
+    let finished = false;
+
+    function done() {
+      if (finished) return;
+      finished = true;
+      if (onDone) onDone();
+      resolve();
+    }
 
     function frame(now) {
-      if (token.cancelled) { resolve(); return; }
-      if (paused) {
-        if (!pausedAt) pausedAt = now;
-        rafId = requestAnimationFrame(frame);
-        return;
+      if (token.cancelled) { done(); return; }
+      if (lastNow === null) lastNow = now;
+      const delta = now - lastNow;
+      lastNow = now;
+      if (!paused) {
+        elapsed += delta;
+        const t = Math.min(1, elapsed / duration);
+        const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+        onUpdate(eased, t);
+        if (t >= 1) { done(); return; }
       }
-      if (pausedAt) {
-        // compensa il tempo trascorso in pausa
-        startTime += now - pausedAt;
-        pausedAt = 0;
-      }
-      if (startTime === null) startTime = now;
-      const t = Math.min(1, (now - startTime) / duration);
-      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
-      onUpdate(eased, t);
-      if (t < 1) {
-        rafId = requestAnimationFrame(frame);
-      } else {
-        if (onDone) onDone();
-        resolve();
-      }
+      const id = requestAnimationFrame(frame);
+      activeRafs.add(id);
     }
-    rafId = requestAnimationFrame(frame);
+
+    const id = requestAnimationFrame(frame);
+    activeRafs.add(id);
   });
 }
 
@@ -166,11 +181,21 @@ function animateValue({ duration, onUpdate, onDone }) {
    STELLE: riempimento progressivo via clip-path.
    Le stelle usano SVG data-uri (nessuna immagine esterna):
    livello grigio di sfondo + livello oro clippato in alto.
+   Il pattern è disegnato su viewBox 100x17 con 5 stelle da 20px
+   d'aria ciascuna: così il riempimento parziale via clip-path è
+   proporzionale al voto anche quando il contenitore è più piccolo.
 ------------------------------------------------------------- */
-const STAR_SVG_GRAY =
-  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='92' height='17' viewBox='0 0 92 17'><g fill='%23dadce0'><path d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(18.7)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(37.4)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(56.1)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(74.8)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/></g></svg>\")";
-const STAR_SVG_GOLD =
-  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='92' height='17' viewBox='0 0 92 17'><g fill='%23fbbc04'><path d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(18.7)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(37.4)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(56.1)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/><path transform='translate(74.8)' d='M8.5 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4L-.7 6.7l5.4-.8z'/></g></svg>\")";
+const STAR_PATH = "M10 1l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-.9-3.8 5.4-.8z";
+
+function starsSvg(fill) {
+  const paths = [0, 20, 40, 60, 80]
+    .map((x) => `<path transform='translate(${x})' d='${STAR_PATH}'/>`)
+    .join("");
+  return `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 17'><g fill='${fill}'>${paths}</g></svg>")`;
+}
+
+const STAR_SVG_GRAY = starsSvg("%23dadce0");
+const STAR_SVG_GOLD = starsSvg("%23fbbc04");
 
 function initStar(el) {
   el.style.backgroundImage = STAR_SVG_GRAY;
@@ -210,7 +235,11 @@ function initAllStars() {
 }
 
 /* ------------------------------------------------------------
-   SCENE: show/hide senza sovrapposizioni
+   SCENE: show/hide senza sovrapposizioni.
+   L'attributo "hidden" nell'HTML garantisce l'accessibilità e il
+   fallback senza JS; all'avvio viene rimosso e le scene sono
+   controllate dalla classe .is-active (gestita in CSS con opacity/
+   visibility, così non entra in conflitto con le animazioni).
 ------------------------------------------------------------- */
 const scenes = {
   search: document.getElementById("sceneSearch"),
@@ -220,9 +249,13 @@ const scenes = {
 const ctaFinal = document.getElementById("ctaFinal");
 
 function hideAllScenes() {
-  Object.values(scenes).forEach((s) => { s.hidden = true; });
-  ctaFinal.hidden = true;
-  ctaFinal.classList.remove("show");
+  Object.values(scenes).forEach((s) => s.classList.remove("is-active"));
+  ctaFinal.classList.remove("is-active", "show");
+}
+
+function showScene(scene) {
+  hideAllScenes();
+  scene.classList.add("is-active");
 }
 
 function resetSceneElements() {
@@ -232,7 +265,8 @@ function resetSceneElements() {
   typedText.textContent = "";
   typedText.appendChild(caret);
   caret.classList.remove("stopped");
-  document.getElementById("searchbar").classList.remove("submitting");
+  const bar = document.getElementById("searchbar");
+  bar.classList.remove("submitting", "enter");
   document.querySelector(".sb-search-icon").classList.remove("visible");
   scenes.search.classList.remove("lifted");
 
@@ -248,9 +282,14 @@ function resetSceneElements() {
   document.getElementById("mapPin").classList.remove("drop");
   document.querySelectorAll(".review").forEach((r) => {
     r.classList.remove("show", "drift");
+    r.style.animationDelay = "";
     const st = r.querySelector(".stars");
     if (st) setStars(st, 0);
   });
+
+  // Forza reflow: da qui in poi le animazioni CSS dei figli possono
+  // essere riavviate correttamente (es. "barPop" della barra).
+  void stageWrap.offsetHeight;
 }
 
 /* ------------------------------------------------------------
@@ -296,8 +335,7 @@ async function phaseTyping(token) {
    FASE 2 — Risultati di ricerca
 ------------------------------------------------------------- */
 async function phaseResults(token) {
-  hideAllScenes();
-  scenes.results.hidden = false;
+  showScene(scenes.results);
 
   const items = [...document.querySelectorAll("#sceneResults .result-item")];
   for (const item of items) {
@@ -320,8 +358,7 @@ async function phaseResults(token) {
 ------------------------------------------------------------- */
 async function phaseCard(token) {
   if (token.cancelled) return;
-  hideAllScenes();
-  scenes.card.hidden = false;
+  showScene(scenes.card);
 
   const card = document.querySelector(".biz-card");
   // Forza reflow per riavviare l'animazione CSS
@@ -391,7 +428,7 @@ async function phaseCard(token) {
 ------------------------------------------------------------- */
 async function phaseCTA(token) {
   if (token.cancelled) return;
-  ctaFinal.hidden = false;
+  ctaFinal.classList.add("is-active");
   void ctaFinal.offsetWidth;
   ctaFinal.classList.add("show");
   // Attesa prima del riavvio del ciclo (~4 secondi)
@@ -404,8 +441,7 @@ async function phaseCTA(token) {
 async function runCycle() {
   const token = sequenceAbortToken;
   resetSceneElements();
-  hideAllScenes();
-  scenes.search.hidden = false;
+  showScene(scenes.search);
 
   await phaseWait(token, 600);
   if (token.cancelled) return;
@@ -434,9 +470,11 @@ async function runCycle() {
 }
 
 function startAnimation() {
-  // Pulizia totale per evitare duplicazioni/sovrapposizioni
+  // Pulizia totale per evitare duplicazioni/sovrapposizioni:
+  // token, timer e animazioni rAF in corso.
   sequenceAbortToken.cancelled = true;
   TimerPool.clearAll();
+  cancelAllRafs();
 
   sequenceAbortToken = { cancelled: false };
   runCycle();
@@ -490,6 +528,7 @@ const observer = new IntersectionObserver(
         running = false;
         sequenceAbortToken.cancelled = true;
         TimerPool.clearAll();
+        cancelAllRafs();
       }
     });
   },
@@ -502,5 +541,16 @@ const observer = new IntersectionObserver(
 document.addEventListener("DOMContentLoaded", () => {
   applyBusinessData(BIZ_DATA);
   initAllStars();
+
+  // Dall'avvio in poi le scene sono gestite via classi (il CSS usa
+  // opacity/visibility per .is-active). L'attributo "hidden" resta solo
+  // come fallback di accessibilità senza JavaScript.
+  Object.values(scenes).forEach((s) => s.removeAttribute("hidden"));
+  ctaFinal.removeAttribute("hidden");
+
+  // Stato iniziale: visibile solo la scena di ricerca
+  hideAllScenes();
+  scenes.search.classList.add("is-active");
+
   observer.observe(document.getElementById("hero"));
 });
